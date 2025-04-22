@@ -7,6 +7,9 @@ module SimpleRISC_Processor (
     wire [31:0] next_pc;
     wire [31:0] instruction;
 
+    // PC update logic
+    assign next_pc = pc + 4;
+
     wire isRet, isSt, isWb, isImmediate, isBeq, isBgt, isUBranch, isLd, isCall;
 
     wire [31:0] reg_data1, reg_data2, reg_data15;
@@ -38,9 +41,10 @@ module SimpleRISC_Processor (
 
     RegisterFile regfile (
         .clk(clk),
+        .rst(rst),
         .reg_write(isWb),
-        .rs(instruction[21:17]),
-        .rt(instruction[16:12]),
+        .rs(instruction[25:21]),  // Modified field positions
+        .rt(instruction[20:16]),  // Modified field positions
         .rd(write_reg),
         .write_data(write_data),
         .reg_data1(reg_data1),
@@ -49,7 +53,7 @@ module SimpleRISC_Processor (
 
     assign reg_data15 = regfile.registers[15];
 
-    RegisterFetch fetch_stage (
+    register_files_access4 fetch_stage (
         .inst(instruction),
         .isRet(isRet),
         .isSt(isSt),
@@ -62,7 +66,7 @@ module SimpleRISC_Processor (
 
     MUX imm_mux (
         .ip0(op2),
-        .ip1({{20{instruction[11]}}, instruction[11:0]}),
+        .ip1({{16{instruction[15]}}, instruction[15:0]}),  // Modified for 16-bit immediate
         .sel(isImmediate),
         .op(op2_mux_out)
     );
@@ -76,7 +80,7 @@ module SimpleRISC_Processor (
         .result(alu_result)
     );
 
-    memory_unit_simple mem (
+    memory_controller mem (
         .isLd(isLd),
         .isSt(isSt),
         .aluResult(alu_result),
@@ -91,15 +95,10 @@ module SimpleRISC_Processor (
         .op(write_data)
     );
 
-    // Use MUX_4_BIT and pad result to 5 bits
-    MUX_4_BIT reg_dest_mux (
-        .ip0(instruction[26:23]), // 4 bits
-        .ip1(4'd15),
-        .sel(isCall),
-        .op(write_reg_4bit)
-    );
-
-    assign write_reg = {1'b0, write_reg_4bit}; // pad to 5 bits (if needed)
+    // Handle destination register selection
+    assign write_reg = isCall ? 5'd15 : 
+                      isImmediate ? instruction[20:16] :  // rt field for ADDI
+                      instruction[15:11];  // rd field for R-type
 
     assign next_pc = pc + 4;
 

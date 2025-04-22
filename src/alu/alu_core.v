@@ -10,7 +10,7 @@ module ALU (
     reg flagsE, flagsGT;
 
     // Adder
-    add1 adder (
+    adder add_op (
         .a(a),
         .b(b),
         .c_in(1'b0),
@@ -19,7 +19,7 @@ module ALU (
     );
 
     // Subtractor
-    sub1 sub (
+    subtractor sub_op (
         .a(a),
         .b(b),
         .b_in(1'b0),
