@@ -1,184 +1,109 @@
-# SimpleRISC Processor Implementation
+# RISC Processor Project
 
-This repository contains a complete hardware description language (HDL) implementation of a single cycle tinyRISC processor using Verilog. The processor implements a custom instruction set architecture (ISA) with various arithmetic, logical, and control flow operations.
+A simple 16-bit RISC processor implemented in Verilog, complete with simulation testbench and build scripts.
 
-## Prerequisites
+---
 
-To run and simulate this processor, you'll need the following tools:
+## Table of Contents
+1. [Project Structure](#project-structure)  
+2. [Instruction Set Architecture (ISA)](#instruction-set-architecture-isa)  
+3. [Prerequisites](#prerequisites)  
+4. [Setup](#setup)  
+5. [Compilation & Simulation](#compilation--simulation)  
+6. [Loading Your Program](#loading-your-program)  
+7. [Viewing Waveforms](#viewing-waveforms)  
 
-- Icarus Verilog (iverilog) - for Verilog compilation and simulation
-- GTKWave - for viewing waveform outputs
-- Make (optional) - for build automation
+---
 
-### Installation
+## Project Structure
 
-#### Windows
-
-```powershell
-# Using Scoop package manager
-scoop install iverilog gtkwave
-
-# Or download installers from:
-# Icarus Verilog: http://bleyer.org/icarus/
-# GTKWave: https://sourceforge.net/projects/gtkwave/
+```text
+risc_processor/
+├── src/                  # RTL source files
+│   ├── alu.v             # Arithmetic Logic Unit
+│   ├── control_unit.v    # Instruction decoder & control signals
+│   ├── processor.v       # Top-level CPU module
+│   ├── register_file.v   # 16×16-bit register file
+│   ├── instr_mem.v       # Instruction ROM with `$readmemh`
+│   ├── memory.v          # Data memory
+│   ├── pc_update.v       # Program-counter update logic
+│   └── imm_gen.v         # Immediate generator
+├── testbench/            # Verification benches
+│   └── processor_tb.v    # Testbench (module `tb_processor`)
+├── sim/                  # Simulation driver & artifacts
+│   ├── program.hex       # Your assembled program (hex)
+│   └── Makefile          # Build & run simulation
+└── .vscode/              # VS Code configuration
+    └── tasks.json        # `make sim` task
 ```
-
-#### Linux
-
-```bash
-# Ubuntu/Debian
-sudo apt-get install iverilog gtkwave
-
-# Fedora
-sudo dnf install iverilog gtkwave
-```
+---
 
 ## Instruction Set Architecture (ISA)
+- **Arithmetic**:  
+  `add`(00000), `sub`(00001), `mul`(00010), `div`(00011), `mod`(00100)  
+- **Comparison & Logic**:  
+  `cmp`(00101), `and`(00110), `or`(00111), `not`(01000)  
+- **Data Movement**:  
+  `mov`(01001), `lsl`(01010), `lsr`(01011), `asr`(01100)  
+- **Memory**:  
+  `ld`(01110), `st`(01111)  
+- **Control Flow**:  
+  `beq`(10000), `bgt`(10001), `b`(10010), `call`(10011), `ret`(10100), `nop`(01101)
 
-The processor implements the following instruction formats:
+---
 
-### Arithmetic and Logical Operations
+## Prerequisites
+- **Icarus Verilog** (for simulation)  
+- **GTKWave** (for waveform viewing)  
 
-- ADD (00000) - Addition
-- SUB (00001) - Subtraction
-- MUL (00010) - Multiplication
-- DIV (00011) - Division
-- MOD (00100) - Modulo
-- CMP (00101) - Compare
-- AND (00110) - Logical AND
-- OR (00111) - Logical OR
-
-### Data Movement and Shifts
-
-- NOT (01000) - Bitwise NOT
-- MOV (01001) - Move
-- LSL (01010) - Logical Shift Left
-- LSR (01011) - Logical Shift Right
-- ASR (01100) - Arithmetic Shift Right
-- NOP (01101) - No Operation
-- LD (01110) - Load
-- ST (01111) - Store
-
-### Branch and Control Flow
-
-- BEQ (10000) - Branch if Equal
-- BGT (10001) - Branch if Greater Than
-- B (10010) - Unconditional Branch
-- CALL (10011) - Function Call
-- RET (10100) - Return from Function
-
-## Project Structure
-
-The project is organized into the following directory structure:
-
+Install on Ubuntu/Debian:
+```bash
+sudo apt update
+sudo apt install -y iverilog gtkwave
 ```
-src/
-├── alu/            # Arithmetic Logic Unit components
-│   ├── alu_core.v
-│   ├── alu_block.v
-│   ├── adder.v
-│   └── subtractor.v
-├── core/           # Core processor components
-│   ├── simple_risc_core.v
-│   ├── register_file.v
-│   ├── program_counter.v
-│   └── pc_incrementer.v
-├── memory/         # Memory components
-│   ├── data_memory.v
-│   ├── instruction_memory.v
-│   └── memory_controller.v
-├── control/        # Control and branch logic
-│   ├── control_unit.v
-│   ├── branch_executor.v
-│   └── branch_calculator.v
-├── utils/          # Utility modules
-│   ├── multiplexer.v
-│   ├── mux_4bit.v
-│   ├── immediate_generator.v
-│   └── register_writer.v
-└── test/           # Test files
-    ├── testbench.v
-    └── program.hex
+## Setup
+
+1. Clone or unzip the project into your workspace.
+
+2. Ensure program.hex lives in the sim/ directory (this is what instr_mem.v reads).
+
+## Compilation & Simulation
+
+From your project root:
+```bash
+cd sim
+make sim  # compiles RTL & TB, runs simulation
 ```
 
-## Building and Running
+Or in VS Code: Ctrl+Shift+B → Simulate RISC CPU.
+Or in Xilinx Vivado
 
-1. To compile and simulate the processor:
+1. Create a new project with name Simple_Risc_Processor
 
-```
-cd ./src
-```
+2. Add the src/ files under Design Sources.
 
-```
-iverilog -o cpu_sim `
-    test/testbench.v `
-    core/simple_risc_core.v `
-    alu/alu_core.v `
-    alu/adder.v `
-    alu/subtractor.v `
-    alu/alu_block.v `
-    core/register_file.v `
-    register_files_access4.v `
-    memory/data_memory.v `
-    memory/instruction_memory.v `
-    memory/memory_controller.v `
-    control/control_unit.v `
-    control/branch_executor.v `
-    control/branch_calculator.v `
-    utils/multiplexer.v `
-    utils/immediate_generator.v
-vvp cpu_sim
+3. Add the testbench files under Simulation Sources.
+
+4. Place program.hex in
+  ~/Simple_Risc_Processor/Simple_Risc_Processor.sim/sim_1/behav/xsim
+
+## Loading Your Program
+
+-  Assemble your RISC assembly into a hex file (8‑digit words) named program.hex.
+
+-  Place that file in sim/program.hex before running make sim.
+
+-  The testbench uses $readmemh("program.hex", mem); to load it into instruction memory.
+
+## Viewing Waveforms
+
+After simulation:
+```bash
+gtkwave processor.vcd &
 ```
 
-2. To view the waveform output:
+- In GTKWave’s Signals pane expand tb_processor → uut → your submodules.
 
-```powershell
-gtkwave cpu.vcd
-```
+- Drag & drop any signals (PC, registers, control flags) into the waveform window.
 
-The simulation will generate a VCD (Value Change Dump) file that can be viewed using GTKWave. This allows you to analyze the behavior of various signals in the processor over time.
-
-## Waveform Analysis
-
-When viewing the waveform in GTKWave:
-
-1. Open the generated `cpu.vcd` file
-2. Expand the testbench module
-3. Add signals of interest to the wave view:
-   - PC and Instruction
-   - Control signals (isWb, isImmediate, isLd, isSt)
-   - ALU operations and results
-   - Register file values
-   - Memory access signals
-
-## Project Structure
-
-- `SimpleRISC_Processor.v` - Top-level processor module
-- `ALU.v` - Arithmetic Logic Unit implementation
-- `RegisterFile.v` - Register file with 32 registers
-- `DataMemory.v` - Data memory implementation
-- `InstructionMemory.v` - Instruction memory implementation
-- `ControlUnit.v` - Instruction decoder and control signal generator
-- `testbench.v` - Test environment for the processor
-- Other supporting modules for multiplexers, adders, etc.
-
-## Features
-
-- 32-bit RISC architecture
-- 32 general-purpose registers
-- Harvard architecture (separate instruction and data memory)
-- Support for arithmetic, logical, memory, and control flow operations
-- Full pipeline implementation
-- Comprehensive testbench for verification
-
-## Testing
-
-The testbench provides detailed output including:
-
-- Current PC value and instruction
-- Control signals status
-- ALU operations and results
-- Register value changes
-- Memory access operations
-
-All simulation outputs are displayed in the console and can be analyzed in detail using the waveform viewer.
+Enjoy exploring and extending this project!
